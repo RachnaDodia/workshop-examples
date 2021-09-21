@@ -3,6 +3,9 @@
   hosts: web
 
   tasks:
+  - name: 6.1.1 - Audit system file permissions
+    shell: rpm -Va --nomtime --nosize --nomd5 --nolinkto
+    
   - name: latest Apache version installed
     yum:
       name: httpd
