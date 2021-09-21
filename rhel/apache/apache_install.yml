@@ -3,8 +3,57 @@
   hosts: web
 
   tasks:
-  - name: 6.1.1 - Audit system file permissions
-    shell: rpm -Va --nomtime --nosize --nomd5 --nolinkto
+  - name: Install NTP
+    yum: name=ntp state=installed 
+    tags: ntp
+    
+  - name: allow ntp through firewall
+    shell: firewall-cmd --add-service=ntp --permanent
+
+  - name: firewall reload
+    shell: firewall-cmd --reload
+
+  - name: Make sure Chrony is started up
+    service: name=chronyd state=started enabled=yes
+    tags: chrony
+ 
+  - name: set timezone
+    shell: timedatectl set-timezone Europe/Berlin
+ 
+  - name: Copy over the NTP configuration
+    copy: src=/root/ntp.conf dest=/etc/ntp.conf remote_src=true
+    notify:
+    - restart ntpd
+    tags: ntp
+ 
+  - name: Make sure NTP is stopped
+    service: name=ntpd state=stopped enabled=yes
+    tags: ntp
+ 
+  - name: Sync time initialy
+    shell: ntpdate 0.in.pool.ntp.org
+    tags: ntp
+
+  - name: Make sure NTP is started up
+    service: name=ntpd state=restarted enabled=yes
+    tags: ntp
+
+  - name: Sync hwclock
+    shell: hwclock -w
+    tags: ntp
+
+  - name: Unlink localtim
+    command: sudo unlink /etc/localtime
+ 
+  - name: Change date format to IST
+    command: sudo ln -s /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+
+  - name: Display Date
+    command: date
+
+  handlers:
+  - name: restart ntpd
+    service: name=ntpd state=restarted
     
   - name: latest Apache version installed
     yum:
